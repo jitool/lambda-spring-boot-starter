@@ -11,5 +11,13 @@
 
 通过@LambdaInject(name="test",version =版本号)指定函数版本引入类中，若不指定version属性则使用最新版本的函数
 
+
+#### 项目结构
+  **_整体结构说明_**  :<br>
+![输入图片说明](https://github.com/jitool/lambda-spring-boot-starter/blob/master/images/Dome1.png "TIM图片20190405222806.png")<br>
+ **gateway项目说明** <br>
+![输入图片说明](https://gitee.com/uploads/images/2019/0405/223516_1d15fc58_1505497.png "TIM图片20190405223506.png")<br>
+
+
 示例：注入函数
-(s://github.com/jitool/lambda-spring-boot-starter/blob/master/images/Dome1.png")<br>
+
