@@ -11,4 +11,14 @@
 
 通过@LambdaInject(name="test",version =版本号)指定函数版本引入类中，若不指定version属性则使用最新版本的函数
 
-示例:注入函数
+
+示例：注入函数
+![输入图片说明](https://github.com/jitool/lambda-spring-boot-starter/blob/master/images/Dome1.png "TIM图片20190405222806.png")<br>
+ 
+示例：引入函数
+
+![输入图片说明](https://github.com/jitool/lambda-spring-boot-starter/blob/master/images/Dome2.png "TIM图片20190405223506.png")<br>
+
+
+
+
