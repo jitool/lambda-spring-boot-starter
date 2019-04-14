@@ -17,6 +17,7 @@ public class TestController {
     @GetMapping("test")
     public Object show(){
         return test.name();
+
     }
 
 }
