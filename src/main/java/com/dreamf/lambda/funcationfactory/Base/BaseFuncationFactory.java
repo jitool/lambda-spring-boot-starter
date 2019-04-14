@@ -55,20 +55,17 @@ public abstract class BaseFuncationFactory implements FuncationFactory<String,Ob
     @Override
     public void setFuncation(String s, Object o, int version) {
         List<Object> list = map.get(s);
-        if(list!=null){
-            if(list.get(version)!=null){
-                throw new RuntimeException("The function name is \""+s+"\", version=\""+version+"\" already exists");
-            }else {
-                list.add(version,o);
-            }
-        }else {
+        if (list == null) {
             list = new ArrayList<>();
-            if(list.size()>=version-1){
-                new RuntimeException("版本不能跳跃，版本号应该按顺序");
-            }
-            list.add(version-1, o);
-            map.put(s,list);
+            map.put(s, list);
         }
+        if(version<=list.size()){
+            throw new RuntimeException("版本插入不正确");
+        }
+        if (list.size()!=version-1 &&list.get(version - 1) != null) {
+            throw new RuntimeException("The function name is \"" + s + "\", version=\"" + version + "\" already exists");
+        }
+        list.add(version - 1, o);
     }
 
     /**

@@ -19,9 +19,7 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 
 public class LambdaSpringBootStarterApplication {
@@ -32,6 +30,16 @@ public class LambdaSpringBootStarterApplication {
     private List<String> classPath = new ArrayList<>();
 
     private FuncationFactory<String, Object> funcationFactory = new FuncationFactoryImpl();
+
+    /**
+     * 维护一个版本顺序
+     */
+    private Map<String, List<Integer>> map = new HashMap<>();
+
+    /**
+     * 临时存放函数
+     */
+    private Map<String, Object> funcation = new HashMap<>();
 
 
     @Autowired
@@ -77,6 +85,31 @@ public class LambdaSpringBootStarterApplication {
         Inject();
     }
 
+    public void loaderFuncation(){
+        logger.info("调用loaderFuncation方法");
+        map.keySet().forEach(key->{
+            List<Integer> list = map.get(key);
+            if(list == null){
+                list = new ArrayList<>();
+            }
+            Collections.sort(list);
+            List<Integer> finalList = list;
+            if(funcationFactory.getFuncationList(key)==null){
+                funcationFactory.getFuncationsMap().put(key, new ArrayList<>());
+            }
+            list.stream().forEach(o->{
+                if(o-1>funcationFactory.getFuncationList(key).size()){
+                    for(int i=0;i<o-1-funcationFactory.getFuncationList(key).size();i++){
+                        finalList.add(null);
+                    }
+                }
+                funcationFactory.setFuncation(key,funcation.get(key+"."+o),o);
+            });
+        });
+        logger.info("调用loaderFuncation方法完成");
+    }
+
+
     /**
      * 加载函数实例注入容器
      */
@@ -117,10 +150,22 @@ public class LambdaSpringBootStarterApplication {
                         Lambda lambda = field.getAnnotation(Lambda.class);
                         field.setAccessible(true);
                         if (lambda.name().equals("")) {
-                            funcationFactory.setFuncation(field.getName(), field.get(object), lambda.version());
+                            List<Integer> list = map.get(field.getName());
+                            if(list == null) {
+                                list = new ArrayList<>();
+                                map.put(field.getName(), list);
+                            }
+                            list.add(lambda.version());
                         } else {
-                            funcationFactory.setFuncation(lambda.name(), field.get(object), lambda.version());
+                            List<Integer> list = map.get(lambda.name());
+                            if(list == null){
+                                list = new ArrayList<>();
+                                map.put(lambda.name(), list);
+                            }
+                            list.add(lambda.version());
                         }
+                        //将函数临时存放到map
+                        funcation.put(lambda.name()+"."+lambda.version(),field.get(object));
                         field.setAccessible(false);
                     } catch (InstantiationException e) {
                         e.printStackTrace();
@@ -130,6 +175,7 @@ public class LambdaSpringBootStarterApplication {
                 }
             });
         });
+        loaderFuncation();
         logger.info("调用 init方法完成");
     }
 
