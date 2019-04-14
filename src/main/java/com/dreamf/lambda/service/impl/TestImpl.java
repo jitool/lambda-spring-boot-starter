@@ -16,6 +16,9 @@ public class TestImpl {
     @Lambda(name = "test",version = 2)
     private Test test1=()->{return "新版本";};
 
-    //@Lambda(name = "test",version = 10)
+    @Lambda(name = "test",version = 3)
+    private Test test2=()->{return "新版本1";};
+
+    @Lambda(name = "test",version = 10)
     private Test test3=()->{return "跳跃版本";};
 }

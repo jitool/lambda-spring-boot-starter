@@ -93,14 +93,14 @@ public class LambdaSpringBootStarterApplication {
                 list = new ArrayList<>();
             }
             Collections.sort(list);
-            List<Integer> finalList = list;
             if(funcationFactory.getFuncationList(key)==null){
                 funcationFactory.getFuncationsMap().put(key, new ArrayList<>());
             }
             list.stream().forEach(o->{
                 if(o-1>funcationFactory.getFuncationList(key).size()){
-                    for(int i=0;i<o-1-funcationFactory.getFuncationList(key).size();i++){
-                        finalList.add(null);
+                    int size=funcationFactory.getFuncationList(key).size();
+                    for(int i=0;i<o-1-size;i++){
+                        funcationFactory.getFuncationList(key).add(null);
                     }
                 }
                 funcationFactory.setFuncation(key,funcation.get(key+"."+o),o);
