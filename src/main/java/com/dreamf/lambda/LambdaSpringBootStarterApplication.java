@@ -59,9 +59,12 @@ public class LambdaSpringBootStarterApplication {
         if (file.isFile()) {
             String classNmae = file.getName();
             if (classNmae.substring(classNmae.lastIndexOf("."), classNmae.length()).equals(".class")) {
-                String clas = file.getPath().replaceAll(resource, "").replaceAll("\\\\",".").replaceAll("/", ".").replaceAll(".class","");
-                clas = clas.substring(1, clas.length());
-                System.out.println(clas);
+                String clas = file.getPath().
+                        replace(resource, "").
+                        replaceAll("\\\\",".").
+                        replaceAll("/", ".").
+                        replace(".class","");
+                clas = clas.substring(clas.indexOf(".")+1);
                 logger.info(clas+"加载类");
                 classPath.add(clas);
             }
