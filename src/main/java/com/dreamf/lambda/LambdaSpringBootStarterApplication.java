@@ -56,11 +56,16 @@ public class LambdaSpringBootStarterApplication {
      * @param resource
      */
     public void initClass(File file, String resource) {
+        logger.info("调用initClass方法");
         if (file.isFile()) {
             String classNmae = file.getName();
             if (classNmae.substring(classNmae.lastIndexOf("."), classNmae.length()).equals(".class")) {
-                String clas = file.getPath().replaceAll(resource, "").replaceAll("\\\\",".").replaceAll("/", ".").replaceAll(".class","");
-                clas = clas.substring(1, clas.length());
+                String clas = file.getPath().
+                        replace(resource, "").
+                        replaceAll("\\\\",".").
+                        replaceAll("/", ".").
+                        replace(".class","");
+                clas = clas.substring(clas.indexOf("."));
                 logger.info(clas+"加载类");
                 classPath.add(clas);
             }
@@ -73,6 +78,7 @@ public class LambdaSpringBootStarterApplication {
             }
             return;
         }
+        logger.info("调用initClass方法结束");
 
     }
 
