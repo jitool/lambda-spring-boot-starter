@@ -5,9 +5,11 @@ import com.dreamf.lambda.annotation.Lambda;
 import com.dreamf.lambda.annotation.LambdaInject;
 import com.dreamf.lambda.funcationfactory.FuncationFactory;
 import com.dreamf.lambda.funcationfactory.impl.FuncationFactoryImpl;
+import com.dreamf.lambda.service.User;
 import com.dreamf.lambda.springbootfactory.SpringBeanFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
@@ -45,13 +47,10 @@ public class LambdaSpringBootStarterApplication {
     @Autowired
     private SpringBeanFactory springBeanFactory;
 
-    @Bean
-    public SpringBeanFactory springBeanFactory(){
-        return new SpringBeanFactory();
-    }
 
     /**
      * 将需可能会初始化的类加载路径加入List
+     *
      * @param file
      * @param resource
      */
@@ -61,11 +60,11 @@ public class LambdaSpringBootStarterApplication {
             if (classNmae.substring(classNmae.lastIndexOf("."), classNmae.length()).equals(".class")) {
                 String clas = file.getPath().
                         replace(resource, "").
-                        replaceAll("\\\\",".").
+                        replaceAll("\\\\", ".").
                         replaceAll("/", ".").
-                        replace(".class","");
-                clas = clas.substring(clas.indexOf(".")+1);
-                logger.info(clas+"加载类");
+                        replace(".class", "");
+                clas = clas.substring(clas.indexOf(".") + 1);
+                logger.info(clas + "加载类");
                 classPath.add(clas);
             }
         } else {
@@ -80,35 +79,32 @@ public class LambdaSpringBootStarterApplication {
 
     }
 
-    @Bean(initMethod = "start")
-    public LambdaSpringBootStarterApplication LambdaSpringBootStarterApplication(){
-        return new LambdaSpringBootStarterApplication();
-    }
 
-    public void start(){
+    public void start() {
         init();
         Inject();
     }
 
-    public void loaderFuncation(){
+    public void loaderFuncation() {
         logger.info("调用loaderFuncation方法");
-        map.keySet().forEach(key->{
+        map.keySet().forEach(key -> {
             List<Integer> list = map.get(key);
-            if(list == null){
+            if (list == null) {
                 list = new ArrayList<>();
             }
             Collections.sort(list);
-            if(funcationFactory.getFuncationList(key)==null){
+            if (funcationFactory.getFuncationList(key) == null) {
                 funcationFactory.getFuncationsMap().put(key, new ArrayList<>());
             }
-            list.stream().forEach(o->{
-                if(o-1>funcationFactory.getFuncationList(key).size()){
-                    int size=funcationFactory.getFuncationList(key).size();
-                    for(int i=0;i<o-1-size;i++){
+            list.stream().forEach(o -> {
+                if (o - 1 > funcationFactory.getFuncationList(key).size()) {
+                    int size = funcationFactory.getFuncationList(key).size();
+                    for (int i = 0; i < o - 1 - size; i++) {
                         funcationFactory.getFuncationList(key).add(null);
                     }
                 }
-                funcationFactory.setFuncation(key,funcation.get(key+"."+o),o);
+                funcationFactory.setFuncation(key, funcation.get(key + "." + o), o);
+                logger.info("注入：\""+key+"\"版本号为\""+o+"\"函数到容器");
             });
         });
         logger.info("调用loaderFuncation方法完成");
@@ -116,7 +112,7 @@ public class LambdaSpringBootStarterApplication {
 
 
     /**
-     * 加载函数实例注入容器
+     * 加载函数实例注入临时容器
      */
     public void init() {
         logger.info("调用 init方法");
@@ -156,21 +152,21 @@ public class LambdaSpringBootStarterApplication {
                         field.setAccessible(true);
                         if (lambda.name().equals("")) {
                             List<Integer> list = map.get(field.getName());
-                            if(list == null) {
+                            if (list == null) {
                                 list = new ArrayList<>();
                                 map.put(field.getName(), list);
                             }
                             list.add(lambda.version());
                         } else {
                             List<Integer> list = map.get(lambda.name());
-                            if(list == null){
+                            if (list == null) {
                                 list = new ArrayList<>();
                                 map.put(lambda.name(), list);
                             }
                             list.add(lambda.version());
                         }
                         //将函数临时存放到map
-                        funcation.put(lambda.name()+"."+lambda.version(),field.get(object));
+                        funcation.put(lambda.name() + "." + lambda.version(), field.get(object));
                         field.setAccessible(false);
                     } catch (InstantiationException e) {
                         e.printStackTrace();
@@ -184,6 +180,41 @@ public class LambdaSpringBootStarterApplication {
         logger.info("调用 init方法完成");
     }
 
+
+    /**
+     * 依赖注入的实际调用
+     * @param field
+     * @param name
+     * @param cl
+     * @param lambdaInject
+     */
+    public void beanInject(Field field, String name, Class cl, LambdaInject lambdaInject) {
+        field.setAccessible(true);
+        Object bean = null;
+        if (name.equals("")) {
+            bean = springBeanFactory.getBean(cl);
+        } else {
+            bean = springBeanFactory.getBean(name);
+        }
+        if (lambdaInject.version() > 0) {
+            try {
+                field.set(bean, funcationFactory.getFuncationVersion(lambdaInject.name(), lambdaInject.version()));
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        } else {
+            try {
+                field.set(bean, funcationFactory.getFuncation(lambdaInject.name()));
+                Class c=bean.getClass();
+                logger.info(("注入函数:\""+lambdaInject.name()+"\"到\""+c.getPackage().toString().substring(8)+"."+c.getName()+"\"中"));
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        field.setAccessible(false);
+    }
+
+
     /**
      * 依赖注入
      */
@@ -191,152 +222,24 @@ public class LambdaSpringBootStarterApplication {
         logger.info("调用 Inject方法");
         classPath.forEach(o -> {
             Class cl = classLoader(o);
-            Field [] fields = cl.getDeclaredFields();
+            Field[] fields = cl.getDeclaredFields();
             Arrays.stream(fields).forEach(field -> {
                 if (field.isAnnotationPresent(LambdaInject.class)) {
                     LambdaInject lambdaInject = field.getAnnotation(LambdaInject.class);
                     if (cl.isAnnotationPresent(Service.class)) {
                         Service component = (Service) cl.getAnnotation(Service.class);
-                        field.setAccessible(true);
-                        if (component.value().equals("")) {
-                            Object bean = springBeanFactory.getBean(cl);
-                            if (lambdaInject.version() > 0) {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncationVersion(lambdaInject.name(), lambdaInject.version()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncation(lambdaInject.name()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        } else {
-                            Object bean = springBeanFactory.getBean(component.value());
-                            if (lambdaInject.version() > 0) {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncationVersion(lambdaInject.name(), lambdaInject.version()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncation(lambdaInject.name()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                        field.setAccessible(false);
-                    }else if(cl.isAnnotationPresent(Controller.class)){
+                        beanInject(field, component.value(), cl, lambdaInject);
+                    } else if (cl.isAnnotationPresent(Controller.class)) {
                         Controller component = (Controller) cl.getAnnotation(Controller.class);
-                        field.setAccessible(true);
-                        if (component.value().equals("")) {
-                            Object bean = springBeanFactory.getBean(cl);
-                            if (lambdaInject.version() > 0) {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncationVersion(lambdaInject.name(), lambdaInject.version()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncation(lambdaInject.name()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        } else {
-                            Object bean = springBeanFactory.getBean(component.value());
-                            if (lambdaInject.version() > 0) {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncationVersion(lambdaInject.name(), lambdaInject.version()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncation(lambdaInject.name()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                        field.setAccessible(false);
-                    }else if(cl.isAnnotationPresent(Component.class)){
+                        beanInject(field, component.value(), cl, lambdaInject);
+                    } else if (cl.isAnnotationPresent(Component.class)) {
                         Component component = (Component) cl.getAnnotation(Component.class);
-                        field.setAccessible(true);
-                        if (component.value().equals("")) {
-                            Object bean = springBeanFactory.getBean(cl);
-                            if (lambdaInject.version() > 0) {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncationVersion(lambdaInject.name(), lambdaInject.version()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncation(lambdaInject.name()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        } else {
-                            Object bean = springBeanFactory.getBean(component.value());
-                            if (lambdaInject.version() > 0) {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncationVersion(lambdaInject.name(), lambdaInject.version()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncation(lambdaInject.name()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                        field.setAccessible(false);
-                    }else if(cl.isAnnotationPresent(Repository.class)){
+                        beanInject(field, component.value(), cl, lambdaInject);
+                    } else if (cl.isAnnotationPresent(Repository.class)) {
                         Repository component = (Repository) cl.getAnnotation(Repository.class);
-                        field.setAccessible(true);
-                        if (component.value().equals("")) {
-                            Object bean = springBeanFactory.getBean(cl);
-                            if (lambdaInject.version() > 0) {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncationVersion(lambdaInject.name(), lambdaInject.version()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncation(lambdaInject.name()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        } else {
-                            Object bean = springBeanFactory.getBean(component.value());
-                            if (lambdaInject.version() > 0) {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncationVersion(lambdaInject.name(), lambdaInject.version()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                try {
-                                    field.set(bean, funcationFactory.getFuncation(lambdaInject.name()));
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                        field.setAccessible(false);
-                    }else {
-                        throw new RuntimeException(o+" not Inject Spring ioc");
+                        beanInject(field, component.value(), cl, lambdaInject);
+                    } else {
+                        throw new RuntimeException(o + " not Inject Spring ioc");
                     }
                 }
             });
@@ -345,7 +248,7 @@ public class LambdaSpringBootStarterApplication {
     }
 
 
-    public Class classLoader(String o){
+    public Class classLoader(String o) {
         Class cl = null;
         try {
             cl = Class.forName(o);

@@ -1,1 +1,1 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.dreamf.lambda.LambdaSpringBootStarterApplication
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.dreamf.lambda.confing.LambdaConfig
